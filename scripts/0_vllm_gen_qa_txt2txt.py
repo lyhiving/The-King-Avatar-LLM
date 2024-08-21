@@ -31,15 +31,15 @@ prompt1 = '''
 
 #04 一句话中只能有一个问题。
 
-#05 生成的问题必须宏观、价值，不要生成特别细节的问题。
+#05 生成的问题必须宏观、价值，不要生成特别细节的问题。问题不能包含章节标题，也不要包含“第几章”或者“第几节”这样的提示。
 
 #06 生成问题示例：
 
 """
 
-权益型基金的特点有哪些方面？
+阿莫西林的特点有哪些方面？
 
-介绍一下叶修。
+介绍一下西地那非。
 
 """
 
@@ -53,17 +53,17 @@ prompt1 = '''
 '''
 
 prompt2 = '''
-#01 你是一个问答对数据集处理专家。
+#01 你是一个问答对数据集处理专家，主要的领域在医学、药学、护理等卫生健康领域。
 
 #02 你的任务是根据我的问题和我给出的内容，生成对应的问答对。
 
-#03 答案要全面，多使用我的信息，内容要更丰富。
+#03 答案要全面，多使用我的信息，内容要更丰富。同时你不能提问类似“这一章主要讨论了什么内容？”这样的问题。也不能提问类似“这一节的重点”，因为科目比较多，无法通过章节的标题进行考核。
 
 #04 你必须根据我的问答对示例格式来生成：
 
 """
 
-{"question": "君莫笑是谁？", "answer": "君莫笑是网络小说《全职高手》中的一个重要角色，出自蝴蝶蓝所著。这部小说讲述了职业电竞选手叶修的故事。君莫笑是叶修在第十区的新账号，使用的武器是自制的千机伞，这把武器可以变换多种形态，适用于多种职业。君莫笑的名字和形象在小说中都是非常重要的元素，是叶修在重新踏入职业赛场的重要标志。}
+{"question": "热原是什么？", "answer": "热原（pyrogen）是微生物产生的-种内毒素（endotoxin），它是能引起恒温动物体温异常升高的致热物质。大多数细菌都能产生热原，其中致热能力最强的是革兰阴性杆菌。霉菌甚至病毒也能产生热原。"}
 
 {"question": "基金是什么？", "answer": "基金，广义是指为了某种目的而设立的具有一定数量的资金。主要包括公积金、信托投资基金、保险基金、退休基金，各种基金会的基金。从会计角度透析，基金是一个狭义的概念，意指具有特定目的和用途的资金。我们提到的基金主要是指证券投资基金。"}
 
@@ -90,14 +90,15 @@ def split_chapters(file_path):
 
     # 用正则表达式匹配章标题
 
-    chapters = re.split(r'(第[一二三四五六七八九十百千万]*章)', content)
+    chapters = re.split(r'(第[一二三四五六七八九十百千万]*[章节])', content)
 
     # 合并章标题和内容
     chapter_list = []
     for i in range(1, len(chapters), 2):
         chapter_title = chapters[i]
         chapter_content = chapters[i + 1] if i + 1 < len(chapters) else ""
-        chapter_list.append(chapter_title + chapter_content)
+        chapter_list.append(chapter_content)
+        # chapter_list.append(chapter_title + chapter_content)
 
     return chapter_list
 
@@ -108,28 +109,32 @@ def split_chapters(file_path):
 def generate_question(MODEL_NAME, prompt1,text):
     # 这里采用dashscope的api调用模型推理，通过http传输的json封装返回结果
     openai_api_key = "EMPTY"
-    openai_api_base = "http://localhost:8000/v1"
+    openai_api_base = "http://localhost:11434/v1"
     client = OpenAI(
         api_key=openai_api_key,
         base_url=openai_api_base,
     )
+    
+    # print(client.models.list())
+    model_name = client.models.list().data[0].id
+    # print(model_name)
     prompt = prompt1.replace("{{此处替换成你的内容}}", text)
     completion = client.chat.completions.create(
-      model=MODEL_NAME,
+      model=model_name,
       messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": q_content}
       ]
     )
     start_time = time.time()
-
+    print(completion)
     print("耗时", time.time() - start_time)
     return completion.choices[0].message.content
 
 def generate_qa(MODEL_NAME, prompt2, text , question_text=None):
     # 这里采用dashscope的api调用模型推理，通过http传输的json封装返回结果
     openai_api_key = "EMPTY"
-    openai_api_base = "http://localhost:8000/v1"
+    openai_api_base = "http://localhost:11434/v1"
     client = OpenAI(
         api_key=openai_api_key,
         base_url=openai_api_base,
@@ -167,12 +172,16 @@ def write_to_file(content):
 
 
 def main():
-    MODEL_NAME = "o1ai"
+    # MODEL_NAME = "wangrongsheng/mistral-7b-v0.3-chinese"
+    MODEL_NAME = "qwen2"
 
-    file_path = './data/novel1.txt'
+    file_path = './data/2024年药学专业知识（一）指南OCR.md'
     text_content = split_chapters(file_path)
     for text in tqdm(text_content):
-
+        # print('MODEL_NAME:\n', MODEL_NAME)
+        # print('prompt1:\n', prompt1)
+        # print('text:\n', text)
+        
         question_text = generate_question(MODEL_NAME, prompt1, text)
         print('text:\n', question_text)
 

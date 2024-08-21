@@ -18,7 +18,7 @@ def save_to_json(qa_pairs, output_path):
         json.dump(qa_pairs, json_file, ensure_ascii=False, indent=4)
 
 # 使用示例
-txt_file_path = './gen_QA1.txt'
+txt_file_path = './gen_QA.txt'
 json_output_path = './QA.json'
 
 qa_pairs = extract_qa_pairs(txt_file_path)
