@@ -31,7 +31,7 @@
 
 **1.clone 本项目至本地开发机** 
 
-    git clone https://github.com/shiqiyio/The-King-Avatar-LLM.git
+    git clone https://github.com/lyhiving/The-King-Avatar-LLM.git
 
 **2.配置环境**
 
